@@ -221,7 +221,7 @@ export default function AdminDashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/admin/dashboard" className="text-xl sm:text-2xl font-semibold tracking-tight text-gray-900 hover:text-red-600 transition-colors">
-              PhysioBook <span className="text-red-600">Admin</span>
+             MIRACLE <span className="text-red-600">Admin</span>
             </Link>
 
             {/* Desktop Navigation */}
