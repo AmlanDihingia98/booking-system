@@ -1,6 +1,11 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
 
 export default function Home() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
@@ -8,7 +13,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <h1 className="text-2xl font-semibold tracking-tight text-gray-900">PhysioBook</h1>
-            <div className="flex items-center space-x-6">
+            <div className="hidden md:flex items-center space-x-6">
               <Link
                 href="/services"
                 className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
@@ -28,8 +33,53 @@ export default function Home() {
                 Get Started
               </Link>
             </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              type="button"
+              aria-label="Toggle navigation menu"
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {mobileMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
           </div>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200/50 bg-white/95 backdrop-blur-xl">
+            <div className="px-4 py-4 space-y-3">
+              <Link
+                href="/services"
+                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Services
+              </Link>
+              <Link
+                href="/auth/login"
+                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/auth/signup"
+                className="block px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg text-center hover:from-blue-700 hover:to-blue-800 transition-all shadow"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Get Started
+              </Link>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}
