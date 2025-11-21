@@ -108,11 +108,11 @@ export default function ServicesPage() {
           <div className="flex justify-between items-center h-16">
             {isAuthenticated ? (
               <Link href={getDashboardLink()} className="text-2xl font-semibold tracking-tight text-gray-900 hover:text-blue-600 transition-colors">
-                PhysioBook
+                MIRACLE
               </Link>
             ) : (
               <Link href="/" className="text-2xl font-semibold tracking-tight text-gray-900 hover:text-blue-600 transition-colors">
-                PhysioBook
+                MIRACLE
               </Link>
             )}
 

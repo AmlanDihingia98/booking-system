@@ -97,19 +97,13 @@ export default function Home() {
           <p className="mt-8 max-w-2xl mx-auto text-xl text-gray-600 leading-relaxed">
             Book physiotherapy appointments with ease. Connect with expert therapists and take control of your recovery journey.
           </p>
-          <div className="mt-12 flex justify-center gap-4">
+          <div className="mt-12 flex justify-center">
             <Link
               href="/auth/signup"
               className="group bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-xl text-base font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 hover:scale-105 transform"
             >
               Book Your Appointment
               <span className="inline-block ml-2 group-hover:translate-x-1 transition-transform">→</span>
-            </Link>
-            <Link
-              href="/services"
-              className="bg-gray-100 text-gray-900 px-8 py-4 rounded-xl text-base font-semibold hover:bg-gray-200 transition-all"
-            >
-              Explore Services
             </Link>
           </div>
         </div>
@@ -119,7 +113,7 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-semibold tracking-tight text-gray-900 mb-4">
-            Why choose PhysioBook?
+            Why choose MIRACLE?
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             Everything you need to manage your physiotherapy appointments in one place.
@@ -251,7 +245,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-4 md:mb-0">
-              <h3 className="text-xl font-semibold text-gray-900">PhysioBook</h3>
+              <h3 className="text-xl font-semibold text-gray-900">MIRACLE</h3>
               <p className="text-sm text-gray-600 mt-1">Professional physiotherapy booking made simple.</p>
             </div>
             <div className="flex items-center space-x-6">
@@ -268,7 +262,7 @@ export default function Home() {
           </div>
           <div className="mt-8 pt-8 border-t border-gray-200/50">
             <p className="text-center text-sm text-gray-500">
-              © 2025 PhysioBook. Built with Next.js & Supabase.
+              © 2025 MIRACLE. Built with Next.js & Supabase.
             </p>
           </div>
         </div>

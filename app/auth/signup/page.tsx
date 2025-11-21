@@ -80,7 +80,7 @@ export default function SignupPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
             <h1 className="text-4xl font-semibold tracking-tight text-gray-900 mb-2">
-              PhysioBook
+              MIRACLE
             </h1>
           </Link>
           <p className="text-gray-600">Create your account</p>
