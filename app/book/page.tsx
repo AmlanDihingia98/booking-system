@@ -55,6 +55,8 @@ function BookAppointmentPageContent() {
     patient_notes: '',
   });
 
+  const [paymentOption, setPaymentOption] = useState<'pay_now' | 'pay_later'>('pay_now');
+
   useEffect(() => {
     checkAuthAndFetchData();
   }, []);
@@ -125,7 +127,7 @@ function BookAppointmentPageContent() {
       const endDateTime = new Date(startDateTime.getTime() + service.duration_minutes * 60000);
       const end_time = endDateTime.toTimeString().slice(0, 5);
 
-      // Create appointment with pending payment status
+      // Create appointment based on payment option
       const appointmentData: any = {
         patient_id: session.user.id,
         staff_id: formData.staff_id,
@@ -133,13 +135,15 @@ function BookAppointmentPageContent() {
         appointment_date: formData.appointment_date,
         start_time: formData.start_time,
         end_time: end_time,
-        status: 'pending',
+        status: paymentOption === 'pay_now' ? 'pending' : 'confirmed',
         patient_notes: formData.patient_notes || null,
       };
 
-      // Add payment_status if the column exists (after migration)
+      // Add payment_status based on payment option
       try {
-        appointmentData.payment_status = 'pending';
+        appointmentData.payment_status = paymentOption === 'pay_now' ? 'pending' : 'pay_later';
+        appointmentData.payment_amount = service.price;
+        appointmentData.payment_currency = 'INR';
       } catch (e) {
         // Column doesn't exist yet, skip
       }
@@ -163,34 +167,44 @@ function BookAppointmentPageContent() {
         return;
       }
 
-      // Create Stripe checkout session
-      const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          appointmentId: newAppointment.id,
-          serviceId: formData.service_id,
-          returnUrl: '/dashboard',
-        }),
-      });
+      // Handle payment based on selected option
+      if (paymentOption === 'pay_now') {
+        // Create Stripe checkout session
+        const response = await fetch('/api/create-checkout-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            appointmentId: newAppointment.id,
+            serviceId: formData.service_id,
+            returnUrl: '/dashboard',
+          }),
+        });
 
-      const { sessionId, url, error: checkoutError } = await response.json();
+        const { sessionId, url, error: checkoutError } = await response.json();
 
-      if (checkoutError || !sessionId) {
-        console.error('Error creating checkout session:', checkoutError);
-        setError('Failed to initiate payment. Please try again.');
-        setSubmitting(false);
-        return;
-      }
+        if (checkoutError || !sessionId) {
+          console.error('Error creating checkout session:', checkoutError);
+          setError('Failed to initiate payment. Please try again.');
+          setSubmitting(false);
+          return;
+        }
 
-      // Redirect to Stripe Checkout using the URL
-      if (url) {
-        window.location.href = url;
+        // Redirect to Stripe Checkout using the URL
+        if (url) {
+          window.location.href = url;
+        } else {
+          setError('Failed to get payment URL. Please try again.');
+          setSubmitting(false);
+        }
       } else {
-        setError('Failed to get payment URL. Please try again.');
-        setSubmitting(false);
+        // Pay later - redirect to dashboard with success message
+        setSuccess(true);
+        setTimeout(() => {
+          router.push('/dashboard?booking=success&payment=later');
+          router.refresh();
+        }, 1500);
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -252,7 +266,13 @@ function BookAppointmentPageContent() {
 
           {success && (
             <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">
-              Appointment booked successfully! Redirecting to dashboard...
+              <p className="font-semibold">Appointment booked successfully!</p>
+              <p className="text-sm mt-1">
+                {paymentOption === 'pay_later'
+                  ? 'You can complete payment after your appointment. Redirecting to dashboard...'
+                  : 'Redirecting to dashboard...'
+                }
+              </p>
             </div>
           )}
 
@@ -350,6 +370,67 @@ function BookAppointmentPageContent() {
               />
             </div>
 
+            {/* Payment Option */}
+            <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200">
+              <label className="block text-sm font-medium text-gray-900 mb-4">
+                Payment Option *
+              </label>
+              <div className="space-y-3">
+                <label className={`flex items-start p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                  paymentOption === 'pay_now'
+                    ? 'border-blue-500 bg-blue-50/50'
+                    : 'border-gray-200 bg-white hover:border-blue-300'
+                }`}>
+                  <input
+                    type="radio"
+                    name="paymentOption"
+                    value="pay_now"
+                    checked={paymentOption === 'pay_now'}
+                    onChange={(e) => setPaymentOption('pay_now')}
+                    className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <div className="ml-3 flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-gray-900">Pay Now</span>
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                        Recommended
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Pay securely via Stripe (Cards, UPI, Wallets)
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      ✓ Instant confirmation • ✓ Secure payment • ✓ Digital receipt
+                    </p>
+                  </div>
+                </label>
+
+                <label className={`flex items-start p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                  paymentOption === 'pay_later'
+                    ? 'border-purple-500 bg-purple-50/50'
+                    : 'border-gray-200 bg-white hover:border-purple-300'
+                }`}>
+                  <input
+                    type="radio"
+                    name="paymentOption"
+                    value="pay_later"
+                    checked={paymentOption === 'pay_later'}
+                    onChange={(e) => setPaymentOption('pay_later')}
+                    className="mt-1 h-4 w-4 text-purple-600 focus:ring-purple-500"
+                  />
+                  <div className="ml-3 flex-1">
+                    <span className="font-semibold text-gray-900">Pay After Appointment</span>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Complete payment after your session
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Pay in-person or online after the appointment
+                    </p>
+                  </div>
+                </label>
+              </div>
+            </div>
+
             {/* Summary */}
             {selectedService && (
               <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
@@ -366,7 +447,10 @@ function BookAppointmentPageContent() {
                     <span className="font-medium">Price:</span> ₹{selectedService.price}
                   </p>
                   <p className="text-xs text-gray-600 mt-2">
-                    💳 Payment via Stripe (supports UPI, Cards, and Digital Wallets)
+                    {paymentOption === 'pay_now'
+                      ? '💳 Payment via Stripe (supports UPI, Cards, and Digital Wallets)'
+                      : '💰 Payment after appointment completion'
+                    }
                   </p>
                 </div>
               </div>
@@ -386,15 +470,21 @@ function BookAppointmentPageContent() {
                   </svg>
                   Processing...
                 </span>
-              ) : (
+              ) : paymentOption === 'pay_now' ? (
                 <>
                   Proceed to Payment {selectedService && `(₹${selectedService.price})`}
                 </>
+              ) : (
+                <>
+                  Confirm Appointment {selectedService && `(₹${selectedService.price})`}
+                </>
               )}
             </button>
-            <p className="text-xs text-center text-gray-500 mt-2">
-              Secure payment powered by Stripe
-            </p>
+            {paymentOption === 'pay_now' && (
+              <p className="text-xs text-center text-gray-500 mt-2">
+                Secure payment powered by Stripe
+              </p>
+            )}
           </form>
         </div>
       </div>

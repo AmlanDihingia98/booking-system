@@ -14,6 +14,7 @@ interface Profile {
 
 interface Appointment {
   id: string;
+  service_id: string;
   appointment_date: string;
   start_time: string;
   end_time: string;
@@ -214,6 +215,8 @@ export default function DashboardPage() {
         return 'bg-emerald-100 text-emerald-800 border-emerald-200';
       case 'pending':
         return 'bg-amber-100 text-amber-800 border-amber-200';
+      case 'pay_later':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'failed':
         return 'bg-red-100 text-red-800 border-red-200';
       case 'refunded':
@@ -231,6 +234,8 @@ export default function DashboardPage() {
         return 'Paid';
       case 'pending':
         return 'Payment Pending';
+      case 'pay_later':
+        return 'Pay After Appointment';
       case 'failed':
         return 'Payment Failed';
       case 'refunded':
@@ -244,6 +249,37 @@ export default function DashboardPage() {
 
   const getFirstName = (fullName: string) => {
     return fullName.split(' ')[0];
+  };
+
+  const handlePayNow = async (appointmentId: string, serviceId: string) => {
+    try {
+      // Create Stripe checkout session
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          appointmentId: appointmentId,
+          serviceId: serviceId,
+          returnUrl: '/dashboard',
+        }),
+      });
+
+      const { url, error: checkoutError } = await response.json();
+
+      if (checkoutError || !url) {
+        console.error('Error creating checkout session:', checkoutError);
+        alert('Failed to initiate payment. Please try again.');
+        return;
+      }
+
+      // Redirect to Stripe Checkout
+      window.location.href = url;
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('An unexpected error occurred. Please try again.');
+    }
   };
 
   return (
@@ -494,6 +530,24 @@ export default function DashboardPage() {
                             on {new Date(appointment.refunded_at).toLocaleDateString()}
                           </span>
                         )}
+                      </div>
+                    )}
+
+                    {/* Pay Now Button for Pay Later Appointments */}
+                    {appointment.payment_status === 'pay_later' && appointment.status !== 'cancelled' && (
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <button
+                          onClick={() => handlePayNow(appointment.id, appointment.service_id)}
+                          className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2.5 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 focus:ring-4 focus:ring-blue-500/20 transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center"
+                        >
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          Pay Now (₹{appointment.payment_amount})
+                        </button>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Complete payment securely via Stripe (Cards, UPI, Wallets)
+                        </p>
                       </div>
                     )}
                   </div>
