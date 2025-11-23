@@ -49,7 +49,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
             <h1 className="text-4xl font-semibold tracking-tight text-gray-900 mb-2">
-              MIRACLE
+              SPORVEDA
             </h1>
           </Link>
           <p className="text-gray-600">Sign in to your account</p>
@@ -118,22 +118,6 @@ export default function LoginPage() {
                 Sign up
               </Link>
             </p>
-          </div>
-
-          <div className="mt-8 pt-6 border-t border-gray-200/50">
-            <p className="text-xs text-gray-500 text-center mb-3">
-              Test credentials:
-            </p>
-            <div className="space-y-2 text-xs">
-              <div className="flex items-center justify-between p-2 bg-gray-50/50 rounded-lg">
-                <span className="text-gray-600">Patient:</span>
-                <code className="font-mono text-gray-900">admin@test.com / password123</code>
-              </div>
-              <div className="flex items-center justify-between p-2 bg-purple-50/50 rounded-lg">
-                <span className="text-gray-600">Staff:</span>
-                <code className="font-mono text-gray-900">therapist1@test.com / password123</code>
-              </div>
-            </div>
           </div>
         </div>
 

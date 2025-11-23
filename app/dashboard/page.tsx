@@ -18,9 +18,16 @@ interface Appointment {
   start_time: string;
   end_time: string;
   status: string;
+  payment_status?: string;
+  payment_amount?: number;
+  payment_currency?: string;
+  paid_at?: string;
+  refund_amount?: number;
+  refunded_at?: string;
   service: {
     name: string;
     duration_minutes: number;
+    price?: number;
   };
   staff: {
     full_name: string;
@@ -201,6 +208,40 @@ export default function DashboardPage() {
     }
   };
 
+  const getPaymentStatusColor = (paymentStatus?: string) => {
+    switch (paymentStatus) {
+      case 'completed':
+        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+      case 'pending':
+        return 'bg-amber-100 text-amber-800 border-amber-200';
+      case 'failed':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'refunded':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'partially_refunded':
+        return 'bg-violet-100 text-violet-800 border-violet-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getPaymentStatusLabel = (paymentStatus?: string) => {
+    switch (paymentStatus) {
+      case 'completed':
+        return 'Paid';
+      case 'pending':
+        return 'Payment Pending';
+      case 'failed':
+        return 'Payment Failed';
+      case 'refunded':
+        return 'Refunded';
+      case 'partially_refunded':
+        return 'Partially Refunded';
+      default:
+        return 'No Payment';
+    }
+  };
+
   const getFirstName = (fullName: string) => {
     return fullName.split(' ')[0];
   };
@@ -212,7 +253,7 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/dashboard" className="text-xl sm:text-2xl font-semibold tracking-tight text-gray-900 hover:text-blue-600 transition-colors">
-              MIRACLE
+              SPORVEDA
             </Link>
 
             {/* Desktop Navigation */}
@@ -390,11 +431,11 @@ export default function DashboardPage() {
               {appointments.map((appointment) => (
                 <div
                   key={appointment.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition"
+                  className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition"
                 >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{appointment.service.name}</h3>
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900 text-lg">{appointment.service.name}</h3>
                       <p className="text-sm text-gray-600 mt-1">
                         with {appointment.staff.full_name}
                       </p>
@@ -407,9 +448,54 @@ export default function DashboardPage() {
                         {appointment.start_time} - {appointment.end_time}
                       </div>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(appointment.status)}`}>
-                      {appointment.status}
-                    </span>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(appointment.status)}`}>
+                        {appointment.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Payment Information */}
+                  <div className="border-t border-gray-100 pt-3 mt-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className={`px-3 py-1 rounded-lg text-xs font-medium border ${getPaymentStatusColor(appointment.payment_status)}`}>
+                          {getPaymentStatusLabel(appointment.payment_status)}
+                        </span>
+
+                        {appointment.payment_amount && (
+                          <div className="flex items-center text-sm">
+                            <svg className="w-4 h-4 mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="font-semibold text-gray-900">
+                              ₹{appointment.payment_amount}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {appointment.paid_at && (
+                        <div className="text-xs text-gray-500">
+                          Paid on {new Date(appointment.paid_at).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Refund Information */}
+                    {(appointment.payment_status === 'refunded' || appointment.payment_status === 'partially_refunded') && appointment.refund_amount && (
+                      <div className="mt-2 flex items-center text-xs text-purple-700 bg-purple-50 px-3 py-2 rounded-lg">
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                        </svg>
+                        Refunded ₹{appointment.refund_amount}
+                        {appointment.refunded_at && (
+                          <span className="ml-2">
+                            on {new Date(appointment.refunded_at).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

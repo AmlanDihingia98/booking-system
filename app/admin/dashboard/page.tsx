@@ -27,6 +27,12 @@ interface Appointment {
   appointment_date: string;
   start_time: string;
   status: string;
+  payment_status?: string;
+  payment_amount?: number;
+  payment_currency?: string;
+  paid_at?: string;
+  refund_amount?: number;
+  refunded_at?: string;
   patient: {
     full_name: string;
   };
@@ -48,6 +54,20 @@ export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<'users' | 'services' | 'appointments'>('users');
   const [signingOut, setSigningOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showAddServiceForm, setShowAddServiceForm] = useState(false);
+  const [newService, setNewService] = useState({
+    name: '',
+    description: '',
+    duration_minutes: 30,
+    price: 0,
+    currency: 'INR',
+  });
+  const [editingAppointment, setEditingAppointment] = useState<string | null>(null);
+  const [editAppointmentData, setEditAppointmentData] = useState({
+    appointment_date: '',
+    start_time: '',
+    status: '',
+  });
 
   useEffect(() => {
     fetchProfile();
@@ -151,19 +171,199 @@ export default function AdminDashboardPage() {
       const { createClient } = await import('@/lib/supabase/client');
       const supabase = createClient();
 
-      const { error } = await supabase
+      const newStatus = !currentStatus;
+
+      const { data, error } = await supabase
         .from('services')
-        .update({ is_active: !currentStatus })
-        .eq('id', serviceId);
+        .update({ is_active: newStatus })
+        .eq('id', serviceId)
+        .select();
 
       if (error) {
-        alert('Failed to update service status');
+        console.error('Update error:', error);
+        alert('Failed to update service status: ' + error.message);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        alert('No service was updated. Please check permissions.');
         return;
       }
 
       fetchAllData();
+      alert(`Service ${newStatus ? 'activated' : 'deactivated'} successfully!`);
     } catch (error) {
       console.error('Error updating service:', error);
+      alert('Unexpected error: ' + (error as Error).message);
+    }
+  };
+
+  const addNewService = async () => {
+    try {
+      if (!newService.name || newService.price <= 0) {
+        alert('Please fill in all required fields');
+        return;
+      }
+
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+
+      const { error } = await supabase
+        .from('services')
+        .insert({
+          name: newService.name,
+          description: newService.description || null,
+          duration_minutes: newService.duration_minutes,
+          price: newService.price,
+          currency: newService.currency,
+          is_active: true,
+        });
+
+      if (error) {
+        alert('Failed to create service: ' + error.message);
+        return;
+      }
+
+      // Reset form
+      setNewService({
+        name: '',
+        description: '',
+        duration_minutes: 30,
+        price: 0,
+        currency: 'INR',
+      });
+      setShowAddServiceForm(false);
+      fetchAllData();
+      alert('Service created successfully!');
+    } catch (error) {
+      console.error('Error creating service:', error);
+      alert('Failed to create service');
+    }
+  };
+
+  const deleteService = async (serviceId: string, serviceName: string) => {
+    try {
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+
+      // First check if there are any appointments using this service
+      const { data: appointmentsUsingService, error: checkError } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('service_id', serviceId)
+        .limit(1);
+
+      if (checkError) {
+        alert('Error checking service usage: ' + checkError.message);
+        return;
+      }
+
+      // If appointments exist, prevent deletion
+      if (appointmentsUsingService && appointmentsUsingService.length > 0) {
+        alert(
+          `Cannot delete "${serviceName}" because it has associated appointments.\n\n` +
+          `Please deactivate the service instead to prevent new bookings while preserving existing appointment records.`
+        );
+        return;
+      }
+
+      // If no appointments, confirm deletion
+      const confirmed = window.confirm(
+        `Are you sure you want to delete "${serviceName}"? This action cannot be undone.`
+      );
+
+      if (!confirmed) return;
+
+      const { error } = await supabase
+        .from('services')
+        .delete()
+        .eq('id', serviceId);
+
+      if (error) {
+        alert('Failed to delete service: ' + error.message);
+        return;
+      }
+
+      fetchAllData();
+      alert('Service deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting service:', error);
+      alert('Failed to delete service');
+    }
+  };
+
+  const startEditingAppointment = (appointment: Appointment) => {
+    setEditingAppointment(appointment.id);
+    setEditAppointmentData({
+      appointment_date: appointment.appointment_date,
+      start_time: appointment.start_time,
+      status: appointment.status,
+    });
+  };
+
+  const cancelEditingAppointment = () => {
+    setEditingAppointment(null);
+    setEditAppointmentData({
+      appointment_date: '',
+      start_time: '',
+      status: '',
+    });
+  };
+
+  const updateAppointment = async (appointmentId: string) => {
+    try {
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          appointment_date: editAppointmentData.appointment_date,
+          start_time: editAppointmentData.start_time,
+          status: editAppointmentData.status,
+        })
+        .eq('id', appointmentId);
+
+      if (error) {
+        alert('Failed to update appointment: ' + error.message);
+        return;
+      }
+
+      cancelEditingAppointment();
+      fetchAllData();
+      alert('Appointment updated successfully!');
+    } catch (error) {
+      console.error('Error updating appointment:', error);
+      alert('Failed to update appointment');
+    }
+  };
+
+  const deleteAppointment = async (appointmentId: string, patientName: string) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete the appointment for ${patientName}? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+
+      const { error } = await supabase
+        .from('appointments')
+        .delete()
+        .eq('id', appointmentId);
+
+      if (error) {
+        alert('Failed to delete appointment: ' + error.message);
+        return;
+      }
+
+      fetchAllData();
+      alert('Appointment deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+      alert('Failed to delete appointment');
     }
   };
 
@@ -205,6 +405,40 @@ export default function AdminDashboardPage() {
     return fullName.split(' ')[0];
   };
 
+  const getPaymentStatusColor = (paymentStatus?: string) => {
+    switch (paymentStatus) {
+      case 'completed':
+        return 'bg-emerald-100 text-emerald-800';
+      case 'pending':
+        return 'bg-amber-100 text-amber-800';
+      case 'failed':
+        return 'bg-red-100 text-red-800';
+      case 'refunded':
+        return 'bg-purple-100 text-purple-800';
+      case 'partially_refunded':
+        return 'bg-violet-100 text-violet-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getPaymentStatusLabel = (paymentStatus?: string) => {
+    switch (paymentStatus) {
+      case 'completed':
+        return 'Paid';
+      case 'pending':
+        return 'Pending';
+      case 'failed':
+        return 'Failed';
+      case 'refunded':
+        return 'Refunded';
+      case 'partially_refunded':
+        return 'Partial Refund';
+      default:
+        return 'N/A';
+    }
+  };
+
   const stats = {
     totalUsers: users.length,
     patients: users.filter(u => u.role === 'patient').length,
@@ -221,7 +455,7 @@ export default function AdminDashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/admin/dashboard" className="text-xl sm:text-2xl font-semibold tracking-tight text-gray-900 hover:text-red-600 transition-colors">
-             MIRACLE <span className="text-red-600">Admin</span>
+             SPORVEDA <span className="text-red-600">Admin</span>
             </Link>
 
             {/* Desktop Navigation */}
@@ -430,39 +664,151 @@ export default function AdminDashboardPage() {
 
             {/* Services Tab */}
             {activeTab === 'services' && (
-              <div className="space-y-4">
-                {services.map((service) => (
-                  <div key={service.id} className="border border-gray-200 rounded-lg p-4 flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3">
-                        <h3 className="font-semibold text-gray-900">{service.name}</h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                          service.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {service.is_active ? 'Active' : 'Inactive'}
-                        </span>
+              <div className="space-y-6">
+                {/* Add Service Button */}
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-gray-900">Manage Services</h3>
+                  <button
+                    onClick={() => setShowAddServiceForm(!showAddServiceForm)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm flex items-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    {showAddServiceForm ? 'Cancel' : 'Add New Service'}
+                  </button>
+                </div>
+
+                {/* Add Service Form */}
+                {showAddServiceForm && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4">Create New Service</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Service Name *
+                        </label>
+                        <input
+                          type="text"
+                          value={newService.name}
+                          onChange={(e) => setNewService({ ...newService, name: e.target.value })}
+                          placeholder="e.g., Sports Massage"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
                       </div>
-                      {service.description && (
-                        <p className="text-sm text-gray-600 mt-1">{service.description}</p>
-                      )}
-                      <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                        <span>{service.duration_minutes} minutes</span>
-                        <span>•</span>
-                        <span>${service.price} {service.currency}</span>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Duration (minutes) *
+                        </label>
+                        <input
+                          type="number"
+                          value={newService.duration_minutes}
+                          onChange={(e) => setNewService({ ...newService, duration_minutes: parseInt(e.target.value) })}
+                          min="15"
+                          step="15"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Price (₹) *
+                        </label>
+                        <input
+                          type="number"
+                          value={newService.price}
+                          onChange={(e) => setNewService({ ...newService, price: parseFloat(e.target.value) })}
+                          min="0"
+                          step="10"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Currency
+                        </label>
+                        <input
+                          type="text"
+                          value={newService.currency}
+                          onChange={(e) => setNewService({ ...newService, currency: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          disabled
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Description (Optional)
+                        </label>
+                        <textarea
+                          value={newService.description}
+                          onChange={(e) => setNewService({ ...newService, description: e.target.value })}
+                          placeholder="Brief description of the service..."
+                          rows={3}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                        />
                       </div>
                     </div>
-                    <button
-                      onClick={() => toggleServiceStatus(service.id, service.is_active)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                        service.is_active
-                          ? 'bg-red-600 text-white hover:bg-red-700'
-                          : 'bg-green-600 text-white hover:bg-green-700'
-                      }`}
-                    >
-                      {service.is_active ? 'Deactivate' : 'Activate'}
-                    </button>
+
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        onClick={addNewService}
+                        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+                      >
+                        Create Service
+                      </button>
+                    </div>
                   </div>
-                ))}
+                )}
+
+                {/* Services List */}
+                <div className="space-y-3">
+                  {services.map((service) => (
+                    <div key={service.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3">
+                            <h3 className="font-semibold text-gray-900">{service.name}</h3>
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                              service.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {service.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          </div>
+                          {service.description && (
+                            <p className="text-sm text-gray-600 mt-1">{service.description}</p>
+                          )}
+                          <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+                            <span>{service.duration_minutes} minutes</span>
+                            <span>•</span>
+                            <span>₹{service.price} {service.currency}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2 ml-4">
+                          <button
+                            onClick={() => toggleServiceStatus(service.id, service.is_active)}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                              service.is_active
+                                ? 'bg-amber-600 text-white hover:bg-amber-700'
+                                : 'bg-green-600 text-white hover:bg-green-700'
+                            }`}
+                          >
+                            {service.is_active ? 'Deactivate' : 'Activate'}
+                          </button>
+                          <button
+                            onClick={() => deleteService(service.id, service.name)}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -490,16 +836,43 @@ export default function AdminDashboardPage() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Payment
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Amount
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {appointments.map((apt) => (
-                      <tr key={apt.id}>
+                      <tr key={apt.id} className={editingAppointment === apt.id ? 'bg-blue-50' : ''}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {new Date(apt.appointment_date).toLocaleDateString()}
+                          {editingAppointment === apt.id ? (
+                            <input
+                              type="date"
+                              value={editAppointmentData.appointment_date}
+                              onChange={(e) => setEditAppointmentData({ ...editAppointmentData, appointment_date: e.target.value })}
+                              className="px-2 py-1 border border-gray-300 rounded text-sm"
+                            />
+                          ) : (
+                            new Date(apt.appointment_date).toLocaleDateString()
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {apt.start_time}
+                          {editingAppointment === apt.id ? (
+                            <input
+                              type="time"
+                              value={editAppointmentData.start_time}
+                              onChange={(e) => setEditAppointmentData({ ...editAppointmentData, start_time: e.target.value })}
+                              className="px-2 py-1 border border-gray-300 rounded text-sm"
+                            />
+                          ) : (
+                            apt.start_time
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {apt.patient.full_name}
@@ -511,14 +884,77 @@ export default function AdminDashboardPage() {
                           {apt.service.name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                            apt.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                            apt.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                            apt.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                            'bg-blue-100 text-blue-800'
-                          }`}>
-                            {apt.status}
+                          {editingAppointment === apt.id ? (
+                            <select
+                              value={editAppointmentData.status}
+                              onChange={(e) => setEditAppointmentData({ ...editAppointmentData, status: e.target.value })}
+                              className="px-2 py-1 border border-gray-300 rounded text-sm"
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="confirmed">Confirmed</option>
+                              <option value="completed">Completed</option>
+                              <option value="cancelled">Cancelled</option>
+                            </select>
+                          ) : (
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                              apt.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                              apt.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              apt.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                              'bg-blue-100 text-blue-800'
+                            }`}>
+                              {apt.status}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPaymentStatusColor(apt.payment_status)}`}>
+                            {getPaymentStatusLabel(apt.payment_status)}
                           </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {apt.payment_amount ? (
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-gray-900">₹{apt.payment_amount}</span>
+                              {apt.refund_amount && apt.refund_amount > 0 && (
+                                <span className="text-xs text-purple-600">Refund: ₹{apt.refund_amount}</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {editingAppointment === apt.id ? (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => updateAppointment(apt.id)}
+                                className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-xs"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={cancelEditingAppointment}
+                                className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 text-xs"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => startEditingAppointment(apt)}
+                                className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => deleteAppointment(apt.id, apt.patient.full_name)}
+                                className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))}

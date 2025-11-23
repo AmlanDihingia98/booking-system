@@ -116,6 +116,7 @@ function BookAppointmentPageContent() {
       const service = services.find((s) => s.id === formData.service_id);
       if (!service) {
         setError('Please select a service');
+        setSubmitting(false);
         return;
       }
 
@@ -124,8 +125,8 @@ function BookAppointmentPageContent() {
       const endDateTime = new Date(startDateTime.getTime() + service.duration_minutes * 60000);
       const end_time = endDateTime.toTimeString().slice(0, 5);
 
-      // Create appointment
-      const { error: insertError } = await supabase.from('appointments').insert({
+      // Create appointment with pending payment status
+      const appointmentData: any = {
         patient_id: session.user.id,
         staff_id: formData.staff_id,
         service_id: formData.service_id,
@@ -134,22 +135,66 @@ function BookAppointmentPageContent() {
         end_time: end_time,
         status: 'pending',
         patient_notes: formData.patient_notes || null,
-      });
+      };
+
+      // Add payment_status if the column exists (after migration)
+      try {
+        appointmentData.payment_status = 'pending';
+      } catch (e) {
+        // Column doesn't exist yet, skip
+      }
+
+      const { data: newAppointment, error: insertError } = await supabase
+        .from('appointments')
+        .insert(appointmentData)
+        .select()
+        .single();
 
       if (insertError) {
         console.error('Error creating appointment:', insertError);
-        setError('Failed to create appointment. Please try again.');
+        setError(`Failed to create appointment: ${insertError.message || 'Please try again.'}`);
+        setSubmitting(false);
         return;
       }
 
-      setSuccess(true);
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 2000);
+      if (!newAppointment) {
+        setError('Failed to create appointment. Please try again.');
+        setSubmitting(false);
+        return;
+      }
+
+      // Create Stripe checkout session
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          appointmentId: newAppointment.id,
+          serviceId: formData.service_id,
+          returnUrl: '/dashboard',
+        }),
+      });
+
+      const { sessionId, url, error: checkoutError } = await response.json();
+
+      if (checkoutError || !sessionId) {
+        console.error('Error creating checkout session:', checkoutError);
+        setError('Failed to initiate payment. Please try again.');
+        setSubmitting(false);
+        return;
+      }
+
+      // Redirect to Stripe Checkout using the URL
+      if (url) {
+        window.location.href = url;
+      } else {
+        setError('Failed to get payment URL. Please try again.');
+        setSubmitting(false);
+      }
     } catch (error) {
       console.error('Unexpected error:', error);
       setError('An unexpected error occurred');
-    } finally {
       setSubmitting(false);
     }
   };
@@ -177,7 +222,7 @@ function BookAppointmentPageContent() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link href="/dashboard" className="text-2xl font-semibold tracking-tight text-gray-900 hover:text-blue-600 transition-colors">
-             MIRACLE
+             SPORVEDA
             </Link>
             <div className="flex items-center space-x-6">
               <Link href="/services" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
@@ -227,7 +272,7 @@ function BookAppointmentPageContent() {
                 <option value="">Choose a service...</option>
                 {services.map((service) => (
                   <option key={service.id} value={service.id}>
-                    {service.name} - ${service.price} ({service.duration_minutes} min)
+                    {service.name} - ₹{service.price} ({service.duration_minutes} min)
                   </option>
                 ))}
               </select>
@@ -318,7 +363,10 @@ function BookAppointmentPageContent() {
                     minutes
                   </p>
                   <p>
-                    <span className="font-medium">Price:</span> ${selectedService.price}
+                    <span className="font-medium">Price:</span> ₹{selectedService.price}
+                  </p>
+                  <p className="text-xs text-gray-600 mt-2">
+                    💳 Payment via Stripe (supports UPI, Cards, and Digital Wallets)
                   </p>
                 </div>
               </div>
@@ -328,10 +376,25 @@ function BookAppointmentPageContent() {
             <button
               type="submit"
               disabled={submitting || staffMembers.length === 0}
-              className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 disabled:bg-gray-400 disabled:cursor-not-allowed transition text-lg"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 focus:ring-4 focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/20 text-lg"
             >
-              {submitting ? 'Booking...' : 'Confirm Booking'}
+              {submitting ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </span>
+              ) : (
+                <>
+                  Proceed to Payment {selectedService && `(₹${selectedService.price})`}
+                </>
+              )}
             </button>
+            <p className="text-xs text-center text-gray-500 mt-2">
+              Secure payment powered by Stripe
+            </p>
           </form>
         </div>
       </div>

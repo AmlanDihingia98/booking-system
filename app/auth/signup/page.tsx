@@ -48,21 +48,27 @@ export default function SignupPage() {
         throw signUpError;
       }
 
-      if (authData.user && authData.session) {
-        await fetch('/api/profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: authData.user.id,
-            email: formData.email,
-            full_name: formData.full_name,
-            role: 'patient'
-          }),
-        });
+      if (authData.user) {
+        // If session exists, user is auto-confirmed (email verification disabled)
+        if (authData.session) {
+          await fetch('/api/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: authData.user.id,
+              email: formData.email,
+              full_name: formData.full_name,
+              role: 'patient'
+            }),
+          });
 
-        await new Promise(resolve => setTimeout(resolve, 500));
-        router.push('/dashboard');
-        router.refresh();
+          await new Promise(resolve => setTimeout(resolve, 500));
+          router.push('/dashboard');
+          router.refresh();
+        } else {
+          // No session means email verification is required
+          router.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}`);
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Signup failed');
@@ -80,7 +86,7 @@ export default function SignupPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
             <h1 className="text-4xl font-semibold tracking-tight text-gray-900 mb-2">
-              MIRACLE
+              SPORVEDA
             </h1>
           </Link>
           <p className="text-gray-600">Create your account</p>

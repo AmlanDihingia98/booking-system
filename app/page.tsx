@@ -12,7 +12,7 @@ export default function Home() {
       <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-xl border-b border-gray-200/50 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <h1 className="text-2xl font-semibold tracking-tight text-gray-900">MIRACLE</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-gray-900">SPORVEDA</h1>
             <div className="hidden md:flex items-center space-x-6">
               <Link
                 href="/services"
@@ -113,7 +113,7 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-semibold tracking-tight text-gray-900 mb-4">
-            Why choose MIRACLE?
+            Why choose SPORVEDA?
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             Everything you need to manage your physiotherapy appointments in one place.
@@ -160,57 +160,114 @@ export default function Home() {
       </div>
 
       {/* Services Preview */}
-      <div className="bg-gray-50 py-24">
+      <div className="bg-gradient-to-b from-gray-50 to-white py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-semibold tracking-tight text-gray-900 mb-4">
+            <h2 className="text-5xl font-semibold tracking-tight text-gray-900 mb-4">
               Our Services
             </h2>
-            <p className="text-lg text-gray-600">
-              Comprehensive physiotherapy treatments tailored to your needs
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Comprehensive physiotherapy treatments designed for your recovery
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
-              { name: 'Initial Consultation', duration: '60 min', price: '$120', color: 'blue' },
-              { name: 'Follow-up Session', duration: '45 min', price: '$90', color: 'green' },
-              { name: 'Sports Injury Treatment', duration: '60 min', price: '$110', color: 'red' },
-              { name: 'Manual Therapy', duration: '30 min', price: '$70', color: 'purple' },
-              { name: 'Rehabilitation Session', duration: '60 min', price: '$100', color: 'indigo' },
+              {
+                name: 'Initial Consultation',
+                duration: '60 min',
+                price: '₹120',
+                description: 'Comprehensive assessment of your condition with personalized treatment planning and expert guidance.',
+                image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&q=80',
+              },
+              {
+                name: 'Follow-up Session',
+                duration: '45 min',
+                price: '₹90',
+                description: 'Continued treatment with progress monitoring and therapy adjustments for optimal recovery.',
+                image: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&q=80',
+              },
+              {
+                name: 'Sports Injury Treatment',
+                duration: '60 min',
+                price: '₹110',
+                description: 'Specialized care for athletic injuries with techniques to restore strength and mobility.',
+                image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80',
+              },
+              {
+                name: 'Manual Therapy',
+                duration: '30 min',
+                price: '₹70',
+                description: 'Hands-on treatment to relieve pain, improve mobility and restore proper body function.',
+                image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80',
+              },
+              {
+                name: 'Rehabilitation Session',
+                duration: '60 min',
+                price: '₹100',
+                description: 'Structured recovery program with exercises designed to rebuild strength and function.',
+                image: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80',
+              },
             ].map((service, index) => (
               <div
                 key={service.name}
-                className="group bg-white p-6 rounded-2xl border border-gray-200/50 hover:border-gray-300 hover:shadow-lg transition-all duration-300"
+                className="group bg-white rounded-3xl overflow-hidden shadow-lg shadow-gray-200/50 hover:shadow-2xl hover:shadow-gray-300/50 transition-all duration-500 border border-gray-100"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                {/* Image */}
+                <div className="relative h-56 overflow-hidden">
+                  <div
+                    className="absolute inset-0 bg-cover bg-center transform group-hover:scale-110 transition-transform duration-700"
+                    style={{ backgroundImage: `url(${service.image})` }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                  <div className="absolute bottom-4 left-4 right-4">
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-white/90 backdrop-blur-sm text-gray-900">
+                        <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {service.duration}
+                      </span>
+                      <span className="text-2xl font-bold text-white drop-shadow-lg">
+                        {service.price}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
                     {service.name}
                   </h3>
-                  <span className={`text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-${service.color}-600 to-${service.color}-700`}>
-                    {service.price}
-                  </span>
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {service.duration}
+                  <p className="text-gray-600 text-sm leading-relaxed mb-6">
+                    {service.description}
+                  </p>
+                  <Link
+                    href="/services"
+                    className="inline-flex items-center justify-center w-full px-6 py-3 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-all group-hover:shadow-lg group-hover:shadow-gray-900/20"
+                  >
+                    Book Now
+                    <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
                 </div>
               </div>
             ))}
+          </div>
 
+          {/* View All Services CTA */}
+          <div className="mt-16 text-center">
             <Link
               href="/services"
-              className="flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-700 text-white p-6 rounded-2xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 group cursor-pointer shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30"
+              className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-105 transform"
             >
-              <div className="text-center">
-                <div className="text-lg font-semibold mb-1">View All Services</div>
-                <div className="text-sm text-blue-100 group-hover:text-white transition-colors">
-                  Explore our complete range →
-                </div>
-              </div>
+              View All Services
+              <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
             </Link>
           </div>
         </div>
@@ -245,7 +302,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-4 md:mb-0">
-              <h3 className="text-xl font-semibold text-gray-900">MIRACLE</h3>
+              <h3 className="text-xl font-semibold text-gray-900">SPORVEDA</h3>
               <p className="text-sm text-gray-600 mt-1">Professional physiotherapy booking made simple.</p>
             </div>
             <div className="flex items-center space-x-6">
@@ -262,7 +319,7 @@ export default function Home() {
           </div>
           <div className="mt-8 pt-8 border-t border-gray-200/50">
             <p className="text-center text-sm text-gray-500">
-              © 2025 MIRACLE. Built with Next.js & Supabase.
+              © 2025 SPORVEDA. Built with Next.js & Supabase.
             </p>
           </div>
         </div>

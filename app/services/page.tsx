@@ -94,9 +94,9 @@ export default function ServicesPage() {
   };
 
   const formatPrice = (price: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: currency || 'USD',
+      currency: currency || 'INR',
     }).format(price);
   };
 
@@ -108,11 +108,11 @@ export default function ServicesPage() {
           <div className="flex justify-between items-center h-16">
             {isAuthenticated ? (
               <Link href={getDashboardLink()} className="text-2xl font-semibold tracking-tight text-gray-900 hover:text-blue-600 transition-colors">
-                MIRACLE
+                SPORVEDA
               </Link>
             ) : (
               <Link href="/" className="text-2xl font-semibold tracking-tight text-gray-900 hover:text-blue-600 transition-colors">
-                MIRACLE
+                SPORVEDA
               </Link>
             )}
 
@@ -199,54 +199,81 @@ export default function ServicesPage() {
             <p className="text-gray-600 mb-4">No services available at the moment</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {services.map((service) => (
-              <div
-                key={service.id}
-                className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
-              >
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <h3 className="text-xl font-bold text-gray-900">{service.name}</h3>
-                    <span className="bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full">
-                      {formatPrice(service.price, service.currency)}
-                    </span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {services.map((service, index) => {
+              // Map service names to images
+              const getServiceImage = (name: string) => {
+                const lowerName = name.toLowerCase();
+                if (lowerName.includes('consultation') || lowerName.includes('initial')) {
+                  return 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&q=80';
+                } else if (lowerName.includes('follow') || lowerName.includes('session')) {
+                  return 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800&q=80';
+                } else if (lowerName.includes('sport') || lowerName.includes('injury')) {
+                  return 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80';
+                } else if (lowerName.includes('manual') || lowerName.includes('therapy')) {
+                  return 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80';
+                } else if (lowerName.includes('rehab')) {
+                  return 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80';
+                } else {
+                  return 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&q=80';
+                }
+              };
+
+              return (
+                <div
+                  key={service.id}
+                  className="group bg-white rounded-3xl overflow-hidden shadow-lg shadow-gray-200/50 hover:shadow-2xl hover:shadow-gray-300/50 transition-all duration-500 border border-gray-100"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  {/* Image */}
+                  <div className="relative h-56 overflow-hidden">
+                    <div
+                      className="absolute inset-0 bg-cover bg-center transform group-hover:scale-110 transition-transform duration-700"
+                      style={{ backgroundImage: `url(${getServiceImage(service.name)})` }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                    <div className="absolute bottom-4 left-4 right-4">
+                      <div className="flex items-center justify-between">
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-white/90 backdrop-blur-sm text-gray-900">
+                          <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          {service.duration_minutes} min
+                        </span>
+                        <span className="text-2xl font-bold text-white drop-shadow-lg">
+                          {formatPrice(service.price, service.currency)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  {service.description && (
-                    <p className="text-gray-600 mb-4 line-clamp-3">{service.description}</p>
-                  )}
-
-                  <div className="flex items-center text-sm text-gray-500 mb-6">
-                    <svg
-                      className="w-4 h-4 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                  {/* Content */}
+                  <div className="p-6">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
+                      {service.name}
+                    </h3>
+                    {service.description && (
+                      <p className="text-gray-600 text-sm leading-relaxed mb-6 line-clamp-3">
+                        {service.description}
+                      </p>
+                    )}
+                    <Link
+                      href={
+                        isAuthenticated
+                          ? `/book?service=${service.id}`
+                          : '/auth/login?redirect=/services'
+                      }
+                      className="inline-flex items-center justify-center w-full px-6 py-3 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-all group-hover:shadow-lg group-hover:shadow-gray-900/20"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    {service.duration_minutes} minutes
+                      Book Now
+                      <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
                   </div>
-
-                  <Link
-                    href={
-                      isAuthenticated
-                        ? `/book?service=${service.id}`
-                        : '/auth/login?redirect=/services'
-                    }
-                    className="block w-full bg-blue-600 text-white text-center py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
-                  >
-                    Book Now
-                  </Link>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
