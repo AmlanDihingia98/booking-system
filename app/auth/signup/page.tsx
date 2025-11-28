@@ -49,19 +49,20 @@ export default function SignupPage() {
       }
 
       if (authData.user) {
+        // Create profile for the user (works for both email verification enabled/disabled)
+        await fetch('/api/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: authData.user.id,
+            email: formData.email,
+            full_name: formData.full_name,
+            role: 'patient'
+          }),
+        });
+
         // If session exists, user is auto-confirmed (email verification disabled)
         if (authData.session) {
-          await fetch('/api/profile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: authData.user.id,
-              email: formData.email,
-              full_name: formData.full_name,
-              role: 'patient'
-            }),
-          });
-
           await new Promise(resolve => setTimeout(resolve, 500));
           router.push('/dashboard');
           router.refresh();

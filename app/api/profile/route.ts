@@ -19,19 +19,22 @@ export async function POST(request: NextRequest) {
     // Use admin client to bypass RLS
     const supabase = createAdminClient();
 
+    // Use upsert to handle cases where profile already exists
     const { data: profile, error } = await supabase
       .from('profiles')
-      .insert({
+      .upsert({
         id,
         email,
         full_name,
         role,
+      }, {
+        onConflict: 'id'
       })
       .select()
       .single();
 
     if (error) {
-      console.error('Error creating profile:', error);
+      console.error('Error creating/updating profile:', error);
       return NextResponse.json(
         { error: 'Failed to create profile' },
         { status: 500 }
